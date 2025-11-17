@@ -1,0 +1,91 @@
+# version: "3.9"
+
+services:
+  web:
+    build: .
+    container_name: remindly_backend_app
+    command: daphne -b 0.0.0.0 -p 8000 remindly_backend.asgi:application
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - MONGO_URL=mongodb://mongodb:27017/remindly_db
+    depends_on:
+      - mongodb
+
+  mongodb:
+    image: mongo:6.0
+    container_name: mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"   # broker port
+      - "15672:15672" # RabbitMQ dashboard
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+  redis:
+    image: redis:7
+    container_name: redis_server
+    restart: always
+    ports:
+      - "6379:6379"
+
+  celery:
+    build: .
+    container_name: celery_worker
+    command: celery -A remindly_backend worker --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - rabbitmq
+      - mongodb
+      - web
+    environment:
+      - MONGO_URL=mongodb://mongodb:27017/remindly_db
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=rpc://
+
+  celery-beat:
+    build: .
+    container_name: celery_beat
+    command: celery -A remindly_backend beat --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - rabbitmq
+      - mongodb
+      - web
+    environment:
+      - MONGO_URL=mongodb://mongodb:27017/remindly_db
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=rpc://
+
+     frontend:
+    build:
+      context: ./frontend            # folder where your React app exists
+      dockerfile: Dockerfile.dev     # development Dockerfile
+    container_name: remindly_frontend
+    ports:
+      - "3000:3000"
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./frontend:/app             # maps local code to container
+      - /app/node_modules            # ensures node_modules stays internal
+    depends_on:
+      - web                          # waits for backend to start
+
+
+volumes:
+  mongo_data:
