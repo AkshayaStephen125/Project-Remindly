@@ -1,4 +1,5 @@
 import graphene
+import logging
 import graphql_jwt
 from graphene_django import DjangoObjectType
 from user_app import models
@@ -6,6 +7,7 @@ from graphql_jwt.decorators import login_required
 from django.contrib.auth import get_user_model
 from graphene_mongo import MongoengineObjectType
 
+logger = logging.getLogger(__name__)
 
 class TaskType(MongoengineObjectType):
     class Meta:
@@ -39,17 +41,20 @@ class TaskUpdateInput(graphene.InputObjectType):
 
 
 class Query(graphene.ObjectType):
-    tasks = graphene.List(TaskType)
+    tasks = graphene.List(TaskType, resolver=lambda root, info: root.resolve_tasks(info))
     task = graphene.Field(TaskType, id=graphene.Int(required=True))
 
     @login_required
-    def resolve_tasks(root, info):
+    def resolve_tasks(self, info):
         user = info.context.user
         if user.is_anonymous:
             return []
-        return models.Task.objects.all()
+        tasks = models.Task.objects.filter(user_id=user.id)
+        if not tasks:
+            logger.info("No tasks found for this user")
+        return list(tasks)
     
-    def resolve_task(root, info, id):
+    def resolve_task(self, info, id):
         user = info.context.user
         if user.is_anonymous:
             return None

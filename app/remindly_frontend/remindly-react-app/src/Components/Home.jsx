@@ -26,7 +26,7 @@ export default function Home() {
       <section className="flex flex-col justify-center items-center text-center h-[80vh] px-6 ">
         <img src={logo} alt="Remindly Logo" className="w-36 h-36 mb-2" />
         <h1 className="text-5xl font-extrabold text-gray-900 mb-6">
-          Never Forget Anything Again! ✨
+          Your Personal Memory Assistant✨
         </h1>
         <p className="text-lg text-gray-600 max-w-xl mb-8">
           Remindly helps you set smart reminders for tasks, appointments, events, and everything that matters to you.

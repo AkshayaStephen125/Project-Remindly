@@ -6,7 +6,7 @@ import { useMutation, useQuery } from "@apollo/client/react";
 import { gql } from "@apollo/client";
 import client from "../apolloClient";
 import { FiLogOut } from "react-icons/fi";
-import { formatLocalTime } from "../utils/formatDateTime";
+import { formatDateTime, utcToLocalInput } from "../utils/formatDateTime";
 
 export default function Reminders() {
   const name  = window.localStorage.getItem("username")
@@ -109,14 +109,14 @@ const convertToUTC = (dateTimeString) => {
       e.preventDefault();
       let updatedTime = selectedTask.remindAt;
   if (updatedTime.length === 16) {
-    updatedTime = updatedTime + ":00";  // append seconds
+    updatedTime = updatedTime + ":00"; 
   }
-    const remindAt = new Date(updatedTime).toISOString();
     updateTask({
       variables:{
         taskId: selectedTask.id,
         task: selectedTask.task,
-        remindAt: remindAt,
+        remindAt: convertToUTC(updatedTime),
+        // remindAt: convertToUTC(selectedTask.remindAt),
       }
     });
     setFormData({ task: "", time: "" });
@@ -248,7 +248,7 @@ const convertToUTC = (dateTimeString) => {
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
             <header className="flex justify-between items-center px-10 shadow-md bg-gradient-to-br from-blue-50 to-blue-200">
-        <div > <img src={logo} alt="Remindly Logo" className="w-16 h-16" /></div>
+        <div > <Link to="/"><img src={logo} alt="Remindly Logo" className="w-16 h-16" /></Link></div>
        {name ?
        ( <span className="text-gray-700">
       Hi, {name}
@@ -308,7 +308,7 @@ const convertToUTC = (dateTimeString) => {
           >
             <div>
               <p className="font-medium text-gray-700">{task.task}</p>
-              <p className="text-sm text-gray-500">⏰ {formatLocalTime(task.remindAt)}</p>
+              <p className="text-sm text-gray-500">⏰ {formatDateTime(task.remindAt)}</p>
             </div>
             <div className="space-x-2">
               <button
@@ -356,10 +356,11 @@ const convertToUTC = (dateTimeString) => {
 
       <label className="block mt-4 mb-2 text-sm font-medium">Reminder Time</label>
       <input
+      
         type="datetime-local"
         className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-        // value={selectedTask.remindAt?.slice(0, 16)}
-        value={selectedTask.remindAt}
+        value={selectedTask.remindAt.replace(/([+-]\d{2}:?\d{2})$/, "")}
+        // value={selectedTask.remindAt}
         onChange={(e) =>
           setSelectedTask({ ...selectedTask, remindAt: e.target.value })
         }
